@@ -32,7 +32,7 @@ jobs:
 
       - name: Run pipeline
         run: |
-          python src/pipeline.py
+          python -u src/pipeline.py
 
       - name: Commit results
         run: |
