@@ -7,8 +7,6 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 
 import yaml
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
 
 from store import Store
 from chunker import probe_duration_seconds, extract_chunk_wav, build_chunks
@@ -19,8 +17,6 @@ from shazam_recognizer import (
     extract_confidence
 )
 from input_resolver import resolve_audio_input
-
-console = Console()
 
 @dataclass
 class TrackAgg:
@@ -53,7 +49,8 @@ async def run_pipeline(
     chunk_seconds: int,
     overlap_seconds: int,
     sample_rate: int,
-    max_parallel: int
+    max_parallel: int,
+    progress_every: int
 ) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -112,26 +109,23 @@ async def run_pipeline(
                 agg.confidence_max = max(agg.confidence_max, float(raw_conf))
 
         # Computed confidence based on how many chunks matched this track.
-        # This tends to be more reliable for DJ sets than any single match score.
         agg2 = tracks[tid]
         computed = min(1.0, agg2.support / 3.0)  # 1 hit=0.33, 2 hits=0.66, 3+=1.0
         agg2.confidence_max = max(agg2.confidence_max, computed)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TextColumn("{task.completed}/{task.total}"),
-        TimeElapsedColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Analyzing chunks", total=len(chunks))
+    total = len(chunks)
+    processed = 0
 
-        coros = [process_one(i, s, d) for i, (s, d) in enumerate(chunks)]
-        batch = 40
-        for b in range(0, len(coros), batch):
-            await asyncio.gather(*coros[b:b+batch])
-            progress.update(task, advance=min(batch, len(coros) - b))
+    # Simple progress output suitable for GitHub Actions logs
+    for idx, (start, dur) in enumerate(chunks):
+        await process_one(idx, start, dur)
+        processed += 1
+
+        if progress_every <= 1:
+            print(f"[progress] {processed}/{total}")
+        else:
+            if processed % progress_every == 0 or processed == total:
+                print(f"[progress] {processed}/{total}")
 
     rows: List[Dict[str, Any]] = []
     for tid, agg in sorted(tracks.items(), key=lambda kv: (-kv[1].confidence_max, -kv[1].support)):
@@ -147,7 +141,6 @@ async def run_pipeline(
             "source_audio": Path(audio_path).name
         })
 
-    # Write results
     (run_dir / "results.json").write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8")
 
     import csv
@@ -180,21 +173,17 @@ async def run_pipeline(
 def main() -> None:
     cfg = load_config("config.yaml")
 
-    # Ensure directories exist
     Path("cache").mkdir(parents=True, exist_ok=True)
     Path(cfg["output"]["base_dir"]).mkdir(parents=True, exist_ok=True)
 
-    # Resolve audio source
     audio_path, video_id = resolve_audio_input(cfg["input"])
 
-    console.print(f"Using video_id: {video_id}")
-    console.print(f"Using audio: {audio_path}")
+    print(f"[info] video_id: {video_id}")
+    print(f"[info] audio: {audio_path}")
 
-    # Prepare store + run folder
     store = Store(cfg["cache"]["sqlite_path"])
     run_dir = Path(cfg["output"]["base_dir"]) / utc_run_stamp()
 
-    # Run async pipeline
     asyncio.run(run_pipeline(
         audio_path=audio_path,
         video_id=video_id,
@@ -204,9 +193,10 @@ def main() -> None:
         overlap_seconds=int(cfg["audio"]["overlap_seconds"]),
         sample_rate=int(cfg["audio"]["sample_rate"]),
         max_parallel=int(cfg["pipeline"]["max_parallel_chunks"]),
+        progress_every=int(cfg["pipeline"].get("progress_every", 5))
     ))
 
-    console.print(f"Run completed: {run_dir}")
+    print(f"[done] Run completed: {run_dir}")
 
 if __name__ == "__main__":
     main()
