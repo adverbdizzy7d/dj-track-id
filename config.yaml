@@ -1,0 +1,22 @@
+audio:
+  chunk_seconds: 30
+  overlap_seconds: 10
+  sample_rate: 16000
+
+pipeline:
+  max_parallel_chunks: 3
+
+input:
+  mp3_path: input/source.mp3
+  prefer_mp3: true
+  youtube:
+    enabled: true
+    audio_format: mp3
+    audio_quality: 0
+    cookies: false
+
+cache:
+  sqlite_path: cache/cache.sqlite
+
+output:
+  base_dir: runs
