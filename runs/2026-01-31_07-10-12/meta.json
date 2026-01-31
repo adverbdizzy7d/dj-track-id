@@ -1,0 +1,11 @@
+{
+  "video_id": "ip9UY6YqLVA",
+  "audio_path": "input/source.mp3",
+  "duration_sec": 5372.212245,
+  "chunk_seconds": 30,
+  "overlap_seconds": 10,
+  "sample_rate": 16000,
+  "max_parallel_chunks": 3,
+  "distinct_tracks": 29,
+  "created_utc": "2026-01-31T07:44:22.827496+00:00"
+}
