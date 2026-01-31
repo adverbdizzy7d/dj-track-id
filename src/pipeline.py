@@ -17,6 +17,7 @@ from shazam_recognizer import (
     extract_confidence
 )
 from input_resolver import resolve_audio_input
+import os
 
 @dataclass
 class TrackAgg:
@@ -171,6 +172,10 @@ async def run_pipeline(
     (run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
 def main() -> None:
+    print("[debug] pipeline.py started")
+    print(f"[debug] cwd={os.getcwd()}")
+    print(f"[debug] repo files in input/: {[p.name for p in Path('input').glob('*')] if Path('input').exists() else 'NO input/ dir'}")
+    print(f"[debug] input/source.mp3 exists? {Path('input/source.mp3').exists()}")
     cfg = load_config("config.yaml")
 
     Path("cache").mkdir(parents=True, exist_ok=True)
