@@ -1,0 +1,5 @@
+shazamio>=0.7.0
+aiohttp>=3.9.0
+PyYAML>=6.0.1
+rich>=13.7.0
+yt-dlp>=2024.01.01
