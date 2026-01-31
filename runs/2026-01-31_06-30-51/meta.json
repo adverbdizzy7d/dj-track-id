@@ -1,0 +1,11 @@
+{
+  "video_id": "5oM481_pWh8",
+  "audio_path": "input/source.mp3",
+  "duration_sec": 3075.709388,
+  "chunk_seconds": 30,
+  "overlap_seconds": 10,
+  "sample_rate": 16000,
+  "max_parallel_chunks": 3,
+  "distinct_tracks": 27,
+  "created_utc": "2026-01-31T06:37:56.526309+00:00"
+}
